@@ -6,6 +6,7 @@ interface SongResultsProps {
   onSongSelect: (song: YouTubeSong) => void;
   isLoading: boolean;
   error: string;
+  onClearResults?: () => void;
 }
 
 const LoadingState = () => (
@@ -52,7 +53,7 @@ const Results = ({ songs, onSongSelect }: { songs: YouTubeSong[]; onSongSelect: 
   </div>
 );
 
-export const SongResults: React.FC<SongResultsProps> = ({ songs, onSongSelect, isLoading, error }) => {
+export const SongResults: React.FC<SongResultsProps> = ({ songs, onSongSelect, isLoading, error, onClearResults }) => {
   const renderContent = () => {
     if (isLoading) {
       return <LoadingState />;
@@ -72,7 +73,17 @@ export const SongResults: React.FC<SongResultsProps> = ({ songs, onSongSelect, i
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-5 mb-6 border border-blue-200/30 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-t-3xl"></div>
-      <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">🎵 Search Results</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-gray-800 flex items-center">🎵 Search Results</h3>
+        {songs.length > 0 && onClearResults && (
+          <button
+            onClick={onClearResults}
+            className="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-1 hover:bg-red-50 rounded-xl transition-colors"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
       {renderContent()}
     </div>
   );

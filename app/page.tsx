@@ -38,6 +38,10 @@ export default function Home() {
     addToQueue(song);
   };
 
+  const handleClearSearchResults = () => {
+    setSearchQuery('');
+  };
+
   // Auto-play first song when queue gets first item
   React.useEffect(() => {
     if (queue.length === 1 && currentSongIndex === -1) {
@@ -99,6 +103,7 @@ export default function Home() {
                 onSongSelect={handleSongSelect}
                 isLoading={isSearching}
                 error={error}
+                onClearResults={handleClearSearchResults}
               />
             )}
 
