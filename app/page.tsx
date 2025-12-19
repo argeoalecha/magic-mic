@@ -12,9 +12,11 @@ import React, { useCallback } from 'react';
 
 export default function Home() {
   const { songs, isLoading: isSearching, error, searchSongs } = useYouTubeSearch();
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   // Memoize searchSongs to prevent SearchBar re-renders
   const memoizedSearchSongs = useCallback((query: string) => {
+    setSearchQuery(query);
     searchSongs(query);
   }, [searchSongs]);
 
@@ -90,10 +92,10 @@ export default function Home() {
               </div>
             )}
 
-            {/* Search Results */}
-            {(songs.length > 0 || isSearching || error) && (
+            {/* Search Results - only show when there's an active search */}
+            {searchQuery && (songs.length > 0 || isSearching || error) && (
               <SongResults
-                songs={songs}
+                songs={songs.slice(0, 3)}
                 onSongSelect={handleSongSelect}
                 isLoading={isSearching}
                 error={error}

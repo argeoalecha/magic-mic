@@ -12,7 +12,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Personal Videoke 🎤',
+  title: 'Hayah-ai Videoke 🎤',
   description: 'Local karaoke app for personal use',
 };
 
