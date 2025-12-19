@@ -1,168 +1,210 @@
-# Personal Videoke 🎤
+# 🎤 Personal Videoke
 
-A simplified, local-only karaoke application built with Next.js 14. Sing your heart out with YouTube karaoke tracks, manage your queue, and get real-time performance scoring!
+A simple, elegant karaoke application for personal use. Search YouTube for karaoke songs, build a queue, and sing along!
 
-## Features ✨
+![Next.js](https://img.shields.io/badge/Next.js-14.2-black?logo=next.js)
+![React](https://img.shields.io/badge/React-18.3-blue?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwind-css)
 
-- **YouTube Search**: Search for karaoke songs directly from YouTube
-- **Queue Management**: Add, remove, reorder songs with drag-and-drop
-- **Auto-Play**: Automatically plays the first song and advances to the next
-- **Performance Scoring**: Real-time singing performance analysis (0-100 score)
-- **Microphone Controls**: Volume slider and mute toggle
-- **Persistent Queue**: Your queue survives page refreshes (localStorage)
-- **Responsive Design**: Beautiful glass-morphism UI that works on desktop and mobile
-- **No Authentication**: Simple, personal use - no login required!
+## ✨ Features
 
-## Getting Started
+- 🔍 **YouTube Search** - Search for karaoke songs from YouTube
+- 📋 **Queue Management** - Build and manage your song queue
+- 🎬 **Video Playback** - Embedded YouTube player with controls
+- 🔄 **Drag & Drop** - Reorder songs in your queue
+- 📱 **Mobile Responsive** - Works on desktop, iPad, and iPhone
+- ⏭️ **Auto-advance** - Automatically plays next song when current ends
+- 🎨 **Beautiful UI** - Modern, gradient design with smooth animations
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- YouTube Data API v3 key (already configured in `.env.local`)
+- **Node.js** 14.x or higher
+- **npm** or **yarn**
+- **YouTube Data API v3 Key** (free from Google Cloud Console)
 
 ### Installation
 
-Dependencies are already installed! Just run:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/videoke-Christmas.git
+   cd videoke-Christmas
+   ```
 
-```bash
-npm run dev
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up your YouTube API key:**
+
+   a. Create a `.env.local` file in the project root:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   b. Get a YouTube API key:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project (or select existing)
+   - Enable **YouTube Data API v3**
+   - Create credentials → API Key
+   - Copy the API key
+
+   c. Edit `.env.local` and add your key:
+   ```
+   NEXT_PUBLIC_YOUTUBE_API_KEY=your_actual_api_key_here
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser:**
+   - Navigate to [http://localhost:3000](http://localhost:3000)
+   - Start searching for karaoke songs!
+
+## 📱 Mobile Access (iPad/iPhone)
+
+To use on mobile devices on the same WiFi network:
+
+1. **Start the server for network access:**
+   ```bash
+   npm run dev:mobile
+   ```
+
+2. **Note the IP address shown** in the terminal output (e.g., `http://192.168.1.100:3000`)
+
+3. **On your mobile device**, open browser and go to that URL
+
+See [MOBILE_ACCESS_GUIDE.md](MOBILE_ACCESS_GUIDE.md) for detailed instructions.
+
+## 📖 Documentation
+
+- **[Operating Guide](OPERATING_GUIDE.md)** - Complete user manual
+- **[Technical Stack](TECHNICAL_STACK.md)** - Architecture and technology details
+- **[Mobile Access Guide](MOBILE_ACCESS_GUIDE.md)** - iPad/iPhone setup
+- **[Git Guide](GIT_GUIDE.md)** - Version control instructions
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js 14.2 (App Router)
+- **UI Library:** React 18.3
+- **Language:** TypeScript 5.8
+- **Styling:** Tailwind CSS 3.4
+- **Video Player:** react-youtube 10.1
+- **API:** YouTube Data API v3
+
+## 📂 Project Structure
+
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### First Use
-
-1. **Search for songs**: Type in the search bar (e.g., "happy birthday karaoke")
-2. **Add to queue**: Click "Add to Queue" on any song
-3. **Start singing**: The first song will auto-play when added
-4. **Control playback**: Use Previous/Next buttons in the queue
-5. **Check your score**: Real-time performance metrics appear while singing
-
-## Project Structure
-
-```
-/videoke-Christmas/
-├── app/
-│   ├── layout.tsx          # Root layout
-│   ├── page.tsx            # Main karaoke page
+videoke-Christmas/
+├── app/                    # Next.js App Router
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Main page
 ├── src/
-│   ├── components/         # 8 UI components
-│   ├── hooks/              # 5 custom hooks
-│   ├── types/              # TypeScript definitions
-│   ├── constants/          # Configuration constants
-│   └── index.css           # Global styles
-├── .env.local              # YouTube API key
-└── package.json            # Dependencies
+│   ├── components/        # React components
+│   ├── hooks/             # Custom React hooks
+│   ├── types/             # TypeScript types
+│   └── utils/             # Utility functions
+├── public/                # Static assets
+└── [config files]         # TypeScript, Tailwind, etc.
 ```
 
-## Technology Stack
+## 🎮 Usage
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Video Player**: react-youtube
-- **Animations**: react-spring
-- **Audio**: Web Audio API
+1. **Search** for a karaoke song in the search bar
+2. **Click "Add to Queue"** on any search result
+3. **First song auto-plays** when added to queue
+4. **Use Prev/Next buttons** to navigate between songs
+5. **Drag and drop** to reorder queue
+6. **Click "Clear All"** to empty the queue
 
-## Key Features Explained
-
-### Queue Persistence
-
-Your queue is automatically saved to localStorage. Refresh the page and your songs are still there!
-
-### Performance Scoring
-
-The app analyzes your singing in real-time using:
-- **Pitch Accuracy** (50%): How close you are to the melody
-- **Timing** (30%): Rhythm consistency
-- **Volume** (20%): Voice projection
-
-### Drag & Drop
-
-Reorder your queue by dragging songs up or down. Uses native HTML5 drag-and-drop API.
-
-## Environment Variables
-
-Located in `.env.local`:
+## 🔧 Available Scripts
 
 ```bash
-NEXT_PUBLIC_YOUTUBE_API_KEY=<your-api-key>
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+npm run dev         # Start development server (localhost only)
+npm run dev:mobile  # Start server accessible on network (for iPad/mobile)
+npm run build       # Build for production
+npm start           # Run production server
+npm run lint        # Run ESLint
+npm run type-check  # Check TypeScript types
 ```
 
-## Scripts
+## ⚙️ Configuration
 
-```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm start        # Start production server
-npm run lint     # Run ESLint
-```
+### Environment Variables
 
-## Customization
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_YOUTUBE_API_KEY` | YouTube Data API v3 key | Yes |
 
-### Change Theme Colors
+### API Quota
 
-Edit the background color in `app/page.tsx`:
+The free tier of YouTube Data API provides:
+- **10,000 units per day**
+- Each search costs ~100 units
+- Approximately **100 searches per day**
 
-```tsx
-<div style={{ backgroundColor: '#1C5753' }}> {/* Change this */}
-```
+## 🤝 Contributing
 
-### Adjust Search Results
+This is a personal project, but feel free to fork and customize for your own use!
 
-Edit `MAX_DISPLAY_RESULTS` in `src/constants/index.ts`:
+## 📝 License
 
-```ts
-MAX_DISPLAY_RESULTS: 5, // Show more or fewer results
-```
+MIT License - feel free to use for personal or commercial projects.
 
-## Troubleshooting
+## 🎯 Use Cases
 
-### YouTube API Quota
+- **Family gatherings** - Karaoke nights at home
+- **Parties** - Queue up songs for guests
+- **Practice** - Solo karaoke practice
+- **Christmas** - Holiday song singalongs (original use case!)
 
-The YouTube API has daily quota limits. If searches fail:
-1. Check your API key in `.env.local`
-2. Verify quotas in [Google Cloud Console](https://console.cloud.google.com)
+## 🐛 Troubleshooting
 
-### Microphone Not Working
+### "YouTube API access denied"
+- Check your API key is correct in `.env.local`
+- Verify YouTube Data API v3 is enabled in Google Cloud Console
+- Check API key restrictions
 
-1. Grant microphone permissions when prompted
-2. Use HTTPS or localhost (required for Web Audio API)
-3. Check browser console for audio context errors
+### "Port 3000 is in use"
+- App will automatically use port 3001
+- Or specify a different port: `npm run dev -- -p 3002`
 
-### Songs Not Embeddable
+### "Can't access on iPad"
+- Ensure both devices are on same WiFi
+- Use `npm run dev:mobile` instead of `npm run dev`
+- Check firewall settings on computer
 
-Some YouTube videos can't be embedded. The app automatically filters these out during search.
+### "Video won't play"
+- Some videos disable embedding
+- Try a different search result
+- Check internet connection
 
-## Browser Support
+## 🔒 Security Notes
 
-- ✅ Chrome/Edge (Chromium)
-- ✅ Firefox
-- ✅ Safari (macOS/iOS)
+- **Never commit `.env.local`** to git (already in `.gitignore`)
+- API key is exposed to browser (normal for `NEXT_PUBLIC_` variables)
+- Consider adding API key restrictions in Google Cloud Console:
+  - HTTP referrer restrictions
+  - IP address restrictions (for production)
 
-Web Audio API and drag-and-drop work in all modern browsers.
+## 🙏 Acknowledgments
 
-## Differences from Original App
+- Built with [Next.js](https://nextjs.org/)
+- Video playback via [react-youtube](https://github.com/tjallingt/react-youtube)
+- Styled with [Tailwind CSS](https://tailwindcss.com/)
+- Data from [YouTube Data API](https://developers.google.com/youtube/v3)
 
-This is a **simplified, personal version** of the production videoke-app:
+## 📧 Contact
 
-**Removed**:
-- Authentication (NextAuth, Supabase)
-- Marketing components (hero, features, banners)
-- Usage limits (unlimited songs!)
-- User accounts and subscriptions
-- Backend database
+For questions or issues, please open a GitHub issue.
 
-**Added**:
-- localStorage queue persistence
-- Cleaner, simpler UI
-- "Personal Videoke" branding
+---
 
-## Credits
+**Made with ❤️ for karaoke lovers**
 
-Built from the production-ready [videoke-app](../videoke-app) with auth and backend removed for local-only use.
-
-## License
-
-Personal use only.
+🎤 Happy Singing! 🎵
