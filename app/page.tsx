@@ -75,15 +75,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="mb-8">
-          <SearchBar onSearch={memoizedSearchSongs} isLoading={isSearching} />
-        </div>
-
         {/* 2-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Search Results & Queue */}
           <div className="lg:col-span-4 space-y-6">
+            {/* Search Bar - moved to left column */}
+            <SearchBar onSearch={memoizedSearchSongs} isLoading={isSearching} />
+
             {queue.length > 0 && (
               <div className="text-center">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent mb-2 drop-shadow-lg">
@@ -126,6 +124,10 @@ export default function Home() {
                     <VideoPlayer
                       currentSong={currentSong}
                       onVideoEnd={handleVideoEnd}
+                      onNext={playNext}
+                      onPrevious={playPrevious}
+                      currentSongIndex={currentSongIndex}
+                      queueLength={queue.length}
                     />
                   </div>
                 ) : (
