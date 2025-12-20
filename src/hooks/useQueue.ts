@@ -55,7 +55,24 @@ export const useQueue = () => {
 
   const removeFromQueue = useCallback((queueId: string) => {
     setQueue((prev) => {
+      const indexToRemove = prev.findIndex((item) => item.queueId === queueId);
+      if (indexToRemove === -1) return prev;
+
       const filtered = prev.filter((item) => item.queueId !== queueId);
+
+      // Adjust current song index if necessary
+      setCurrentSongIndex((currentIdx) => {
+        if (indexToRemove < currentIdx) {
+          // Removed a song before current - shift index down
+          return currentIdx - 1;
+        } else if (indexToRemove === currentIdx) {
+          // Current song was removed - stop playing
+          return -1;
+        }
+        // Removed a song after current - no change needed
+        return currentIdx;
+      });
+
       // Update queue positions
       return filtered.map((item, index) => ({
         ...item,
@@ -83,8 +100,8 @@ export const useQueue = () => {
 
     const nextIndex = currentSongIndex + 1;
     if (nextIndex >= queue.length) {
+      // Reached the end of queue - stop playing but keep queue intact
       setCurrentSongIndex(-1);
-      setQueue([]);
     } else {
       setCurrentSongIndex(nextIndex);
     }

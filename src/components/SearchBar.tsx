@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { UI_CONFIG } from '@/constants';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -10,7 +11,7 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({ onSearch, isLoading }) =
   const [query, setQuery] = useState('');
   const [lastSearched, setLastSearched] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const debouncedQuery = useDebounce(query, 250); // Reduced to 250ms for optimal responsiveness
+  const debouncedQuery = useDebounce(query, UI_CONFIG.SEARCH_DEBOUNCE_MS);
 
   // Track typing state
   useEffect(() => {

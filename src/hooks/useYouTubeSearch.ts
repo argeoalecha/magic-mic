@@ -12,7 +12,20 @@ interface CacheEntry {
 }
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_CACHE_SIZE = 50; // Limit cache to 50 entries to prevent memory leaks
 const searchCache = new Map<string, CacheEntry>();
+
+// Helper function to clean up old cache entries
+const cleanupCache = () => {
+  if (searchCache.size <= MAX_CACHE_SIZE) return;
+
+  // Remove oldest entries until we're under the limit
+  const entries = Array.from(searchCache.entries())
+    .sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+  const entriesToRemove = entries.slice(0, searchCache.size - MAX_CACHE_SIZE);
+  entriesToRemove.forEach(([key]) => searchCache.delete(key));
+};
 
 // Helper function to check if videos are embeddable
 const checkVideoEmbeddability = async (videoIds: string[]): Promise<Set<string>> => {
@@ -112,6 +125,8 @@ export const useYouTubeSearch = () => {
             songs: embeddableResults,
             timestamp: now
           });
+          // Clean up old cache entries to prevent memory leaks
+          cleanupCache();
         } else {
           setSongs([]);
           setError('No embeddable karaoke songs found. Try a different search term!');

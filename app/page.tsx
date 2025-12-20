@@ -8,7 +8,7 @@ import { CompactQueue } from '@/components/CompactQueue';
 import { useYouTubeSearch } from '@/hooks/useYouTubeSearch';
 import { useQueue } from '@/hooks/useQueue';
 import type { YouTubeSong } from '@/types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 
 export default function Home() {
   const { songs, isLoading: isSearching, error, searchSongs } = useYouTubeSearch();
@@ -42,12 +42,18 @@ export default function Home() {
     setSearchQuery('');
   };
 
+  // Store playNext in a ref to avoid unnecessary effect re-runs
+  const playNextRef = useRef(playNext);
+  useEffect(() => {
+    playNextRef.current = playNext;
+  }, [playNext]);
+
   // Auto-play first song when queue gets first item
-  React.useEffect(() => {
+  useEffect(() => {
     if (queue.length === 1 && currentSongIndex === -1) {
-      playNext();
+      playNextRef.current();
     }
-  }, [queue, currentSongIndex, playNext]);
+  }, [queue.length, currentSongIndex]);
 
   const handleVideoEnd = () => {
     playNext();
@@ -70,13 +76,13 @@ export default function Home() {
           <div className="text-center mb-12">
             <div className="relative">
               <h1 className="text-6xl lg:text-7xl font-bold mb-4 drop-shadow-2xl">
-                🎤 <span style={{ fontFamily: 'Playfair Display, serif', fontStyle: 'italic', fontWeight: '400' }}>Personal</span>{' '}
+                🎤 <span style={{ fontFamily: 'Playfair Display, serif', fontStyle: 'italic', fontWeight: '400' }}>Hayahai</span>{' '}
                 <span className="bg-gradient-to-r from-white via-blue-200 to-sky-200 bg-clip-text text-transparent">Videoke</span>
               </h1>
               <div className="absolute -inset-8 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
             </div>
             <p className="text-xl text-blue-100 drop-shadow-md mb-6">
-              Your personal karaoke experience
+              Your personalized karaoke experience
             </p>
           </div>
         )}
