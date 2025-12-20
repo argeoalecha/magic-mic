@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import { extractYouTubeVideoId } from '@/utils/favoritesParser';
 
@@ -125,19 +126,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ensure song_hits folder exists
-    if (!fs.existsSync(songHitsPath)) {
-      fs.mkdirSync(songHitsPath, { recursive: true });
+    // Ensure song_hits folder exists (async)
+    try {
+      await fs.access(songHitsPath);
+    } catch {
+      await fs.mkdir(songHitsPath, { recursive: true });
     }
 
     let workbook: XLSX.WorkBook;
     let worksheet: XLSX.WorkSheet;
     let existingData: any[] = [];
 
-    // Check if my_favorites.xlsx exists
-    if (fs.existsSync(favoritesFilePath)) {
-      // Read existing file
-      const fileBuffer = fs.readFileSync(favoritesFilePath);
+    // Check if my_favorites.xlsx exists (async)
+    let fileExists = false;
+    try {
+      await fs.access(favoritesFilePath);
+      fileExists = true;
+    } catch {
+      fileExists = false;
+    }
+
+    if (fileExists) {
+      // Read existing file (async)
+      const fileBuffer = await fs.readFile(favoritesFilePath);
       workbook = XLSX.read(fileBuffer, { type: 'buffer' });
       worksheet = workbook.Sheets[workbook.SheetNames[0]];
       existingData = XLSX.utils.sheet_to_json(worksheet);
@@ -180,8 +191,9 @@ export async function POST(request: Request) {
       XLSX.utils.book_append_sheet(workbook, newWorksheet, 'Favorites');
     }
 
-    // Write file
-    XLSX.writeFile(workbook, favoritesFilePath);
+    // Write file (async)
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    await fs.writeFile(favoritesFilePath, buffer);
 
     return NextResponse.json({
       message: 'Song added successfully to my_favorites.xlsx',

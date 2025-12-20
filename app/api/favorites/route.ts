@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import type { FavoriteSong } from '@/types';
 import { extractYouTubeVideoId } from '@/utils/favoritesParser';
@@ -24,13 +25,16 @@ export async function GET() {
       );
     }
 
-    // Check if folder exists
-    if (!fs.existsSync(songHitsPath)) {
+    // Check if folder exists (async)
+    try {
+      await fs.access(songHitsPath);
+    } catch {
       return NextResponse.json({ favorites: [], error: 'song_hits folder not found' });
     }
 
-    // Read all Excel and CSV files from song_hits folder
-    const files = fs.readdirSync(songHitsPath).filter(file =>
+    // Read all Excel and CSV files from song_hits folder (async)
+    const allFiles = await fs.readdir(songHitsPath);
+    const files = allFiles.filter(file =>
       file.endsWith('.xlsx') || file.endsWith('.xls') || file.endsWith('.csv')
     );
 
@@ -60,8 +64,8 @@ export async function GET() {
       }
 
       try {
-        // Read the file
-        const fileBuffer = fs.readFileSync(filePath);
+        // Read the file (async)
+        const fileBuffer = await fs.readFile(filePath);
         const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
 
         // Get first sheet

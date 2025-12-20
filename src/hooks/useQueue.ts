@@ -4,6 +4,7 @@ import type { QueueItem, YouTubeSong } from '@/types';
 import { QUEUE_CONFIG } from '@/constants';
 
 const STORAGE_KEY = 'personal-videoke-queue';
+const STORAGE_DEBOUNCE_MS = 500; // Debounce localStorage writes by 500ms
 
 export const useQueue = () => {
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -25,18 +26,24 @@ export const useQueue = () => {
     setIsInitialized(true);
   }, []);
 
-  // Save queue to localStorage whenever it changes
+  // Save queue to localStorage with debounce to improve performance
   useEffect(() => {
     if (!isInitialized) return;
 
-    if (queue.length > 0 || currentSongIndex >= 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        queue,
-        currentSongIndex
-      }));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    // Debounce the localStorage write
+    const timeoutId = setTimeout(() => {
+      if (queue.length > 0 || currentSongIndex >= 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          queue,
+          currentSongIndex
+        }));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }, STORAGE_DEBOUNCE_MS);
+
+    // Clear timeout if queue/index changes before debounce completes
+    return () => clearTimeout(timeoutId);
   }, [queue, currentSongIndex, isInitialized]);
 
   const addToQueue = useCallback((song: YouTubeSong, addedBy = QUEUE_CONFIG.DEFAULT_USER_NAME) => {
