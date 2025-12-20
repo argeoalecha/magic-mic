@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { UI_CONFIG } from '@/constants';
 
 interface SearchBarProps {
@@ -12,6 +13,31 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({ onSearch, isLoading }) =
   const [lastSearched, setLastSearched] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const debouncedQuery = useDebounce(query, UI_CONFIG.SEARCH_DEBOUNCE_MS);
+
+  // Voice search integration
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    setQuery(transcript);
+    if (transcript.trim().length >= 1) {
+      onSearch(transcript.trim());
+      setLastSearched(transcript.trim());
+    }
+  }, [onSearch]);
+
+  const {
+    isListening,
+    transcript,
+    error: voiceError,
+    isSupported: isVoiceSupported,
+    startListening,
+    stopListening,
+  } = useVoiceSearch(handleVoiceTranscript);
+
+  // Update query with live transcript
+  useEffect(() => {
+    if (isListening && transcript) {
+      setQuery(transcript);
+    }
+  }, [isListening, transcript]);
 
   // Track typing state
   useEffect(() => {
@@ -42,6 +68,14 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({ onSearch, isLoading }) =
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
   }, []);
+
+  const handleMicClick = useCallback(() => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }, [isListening, startListening, stopListening]);
 
   return (
     <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-2xl mb-8 border border-blue-200/30 relative overflow-hidden group">
@@ -84,6 +118,36 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({ onSearch, isLoading }) =
             )}
           </div>
         </div>
+
+        {/* Voice Search Button */}
+        {isVoiceSupported && (
+          <button
+            type="button"
+            onClick={handleMicClick}
+            className={`px-6 py-4 rounded-2xl text-lg font-semibold transform transition-all duration-200 shadow-lg relative overflow-hidden ${
+              isListening
+                ? 'bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse scale-110 shadow-2xl'
+                : 'bg-gradient-to-r from-blue-500 to-sky-500 text-white hover:from-blue-600 hover:to-sky-600 hover:scale-105 hover:shadow-xl'
+            }`}
+            title={isListening ? 'Stop listening' : 'Voice search'}
+          >
+            {isListening ? (
+              <span className="inline-flex items-center gap-2">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping"></span>
+              </span>
+            ) : (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            )}
+          </button>
+        )}
+
         <button
           type="submit"
           disabled={!query.trim()}
@@ -117,17 +181,56 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({ onSearch, isLoading }) =
         </button>
       </form>
       
-      {/* Helpful hint */}
-      <div className="mt-3 text-center">
-        {query && query.trim().length > 0 && query.trim().length < 3 && (
-          <p className="text-sm text-blue-600/80">
-            Type at least 3 characters to search automatically, or press Enter to search now
+      {/* Helpful hints and voice feedback */}
+      <div className="mt-3 text-center space-y-2">
+        {/* Voice listening status */}
+        {isListening && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 animate-pulse">
+            <p className="text-sm font-semibold text-red-600 flex items-center justify-center gap-2">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              🎤 Listening... {transcript && `"${transcript}"`}
+            </p>
+            <p className="text-xs text-red-500 mt-1">
+              Speak clearly and we'll search when you finish
+            </p>
+          </div>
+        )}
+
+        {/* Voice error */}
+        {voiceError && !isListening && (
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+            <p className="text-sm text-orange-600">
+              ⚠️ {voiceError}
+            </p>
+          </div>
+        )}
+
+        {/* Voice not supported hint */}
+        {!isVoiceSupported && (
+          <p className="text-xs text-gray-500">
+            💡 Voice search works best in Chrome browser
           </p>
         )}
-        {isTyping && query.trim().length >= 3 && (
-          <p className="text-sm text-orange-600/80">
-            Still typing? Search will start in a moment...
-          </p>
+
+        {/* Regular hints */}
+        {!isListening && !voiceError && (
+          <>
+            {query && query.trim().length > 0 && query.trim().length < 3 && (
+              <p className="text-sm text-blue-600/80">
+                Type at least 3 characters to search automatically, or press Enter to search now
+              </p>
+            )}
+            {isTyping && query.trim().length >= 3 && (
+              <p className="text-sm text-orange-600/80">
+                Still typing? Search will start in a moment...
+              </p>
+            )}
+            {isVoiceSupported && !query && (
+              <p className="text-sm text-blue-600/80">
+                💡 Tip: Click the 🎤 microphone to search by voice!
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>
