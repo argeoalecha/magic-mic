@@ -27,6 +27,7 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
 
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
   // Check if Web Speech API is supported
   useEffect(() => {
@@ -58,7 +59,11 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
         }
 
         const fullTranscript = (finalTranscript + interimTranscript).trim();
-        setState(prev => ({ ...prev, transcript: fullTranscript, error: null }));
+
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setState(prev => ({ ...prev, transcript: fullTranscript, error: null }));
+        }
 
         // Reset silence timer
         if (silenceTimerRef.current) {
@@ -68,7 +73,8 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
         // Auto-complete after 1.5 seconds of silence
         if (finalTranscript) {
           silenceTimerRef.current = setTimeout(() => {
-            if (fullTranscript && onTranscriptComplete) {
+            // Check if component is still mounted and recognition is active
+            if (isMountedRef.current && recognitionRef.current && fullTranscript && onTranscriptComplete) {
               onTranscriptComplete(fullTranscript);
               stopListening();
             }
@@ -98,16 +104,22 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
             errorMessage = `Error: ${event.error}`;
         }
 
-        setState(prev => ({
-          ...prev,
-          error: errorMessage,
-          isListening: false,
-        }));
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setState(prev => ({
+            ...prev,
+            error: errorMessage,
+            isListening: false,
+          }));
+        }
       };
 
       // Handle end
       recognition.onend = () => {
-        setState(prev => ({ ...prev, isListening: false }));
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setState(prev => ({ ...prev, isListening: false }));
+        }
         if (silenceTimerRef.current) {
           clearTimeout(silenceTimerRef.current);
         }
@@ -117,21 +129,31 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
     }
 
     return () => {
+      // Mark component as unmounted
+      isMountedRef.current = false;
+
+      // Clean up recognition
       if (recognitionRef.current) {
         recognitionRef.current.abort();
+        recognitionRef.current = null;
       }
+
+      // Clear any pending timers
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
       }
     };
   }, [onTranscriptComplete]);
 
   const startListening = useCallback(() => {
-    if (!state.isSupported || !recognitionRef.current) {
-      setState(prev => ({
-        ...prev,
-        error: 'Voice search is not supported in this browser. Please try Chrome.',
-      }));
+    if (!state.isSupported || !recognitionRef.current || !isMountedRef.current) {
+      if (isMountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          error: 'Voice search is not supported in this browser. Please try Chrome.',
+        }));
+      }
       return;
     }
 
@@ -145,11 +167,13 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
       recognitionRef.current.start();
     } catch (error) {
       console.error('Error starting recognition:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'Failed to start voice recognition',
-        isListening: false,
-      }));
+      if (isMountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          error: 'Failed to start voice recognition',
+          isListening: false,
+        }));
+      }
     }
   }, [state.isSupported]);
 
@@ -160,11 +184,15 @@ export const useVoiceSearch = (onTranscriptComplete?: (transcript: string) => vo
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
     }
-    setState(prev => ({ ...prev, isListening: false }));
+    if (isMountedRef.current) {
+      setState(prev => ({ ...prev, isListening: false }));
+    }
   }, []);
 
   const clearTranscript = useCallback(() => {
-    setState(prev => ({ ...prev, transcript: '', error: null }));
+    if (isMountedRef.current) {
+      setState(prev => ({ ...prev, transcript: '', error: null }));
+    }
   }, []);
 
   return {

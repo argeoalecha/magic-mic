@@ -106,18 +106,14 @@ export default function Home() {
     });
   }, [getSongsByGroup, addToQueue]);
 
-  // Store playNext in a ref to avoid unnecessary effect re-runs
-  const playNextRef = useRef(playNext);
+  // Auto-play first song when queue gets first item(s)
+  // Fixed: Include playNext in dependencies to avoid stale closure
+  // Fixed: Handle case where multiple songs added simultaneously
   useEffect(() => {
-    playNextRef.current = playNext;
-  }, [playNext]);
-
-  // Auto-play first song when queue gets first item
-  useEffect(() => {
-    if (queue.length === 1 && currentSongIndex === -1) {
-      playNextRef.current();
+    if (queue.length >= 1 && currentSongIndex === -1) {
+      playNext();
     }
-  }, [queue.length, currentSongIndex]);
+  }, [queue.length, currentSongIndex, playNext]);
 
   const handleVideoEnd = () => {
     playNext();
