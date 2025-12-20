@@ -55,8 +55,10 @@ A simple, elegant karaoke application for personal use. Search YouTube for karao
 
    c. Edit `.env.local` and add your key:
    ```
-   NEXT_PUBLIC_YOUTUBE_API_KEY=your_actual_api_key_here
+   YOUTUBE_API_KEY=your_actual_api_key_here
    ```
+
+   **Note:** The API key is now server-side only (no `NEXT_PUBLIC_` prefix) for better security.
 
 4. **Run the development server:**
    ```bash
@@ -140,7 +142,7 @@ npm run type-check  # Check TypeScript types
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `NEXT_PUBLIC_YOUTUBE_API_KEY` | YouTube Data API v3 key | Yes |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 key (server-side only) | Yes |
 
 ### API Quota
 
@@ -188,10 +190,13 @@ MIT License - feel free to use for personal or commercial projects.
 ## 🔒 Security Notes
 
 - **Never commit `.env.local`** to git (already in `.gitignore`)
-- API key is exposed to browser (normal for `NEXT_PUBLIC_` variables)
-- Consider adding API key restrictions in Google Cloud Console:
-  - HTTP referrer restrictions
-  - IP address restrictions (for production)
+- ✅ **API key is server-side only** - Protected from client-side exposure
+- YouTube API calls are proxied through `/api/youtube/search` endpoint
+- Additional security recommendations:
+  - Add HTTP referrer restrictions in Google Cloud Console
+  - Add IP address restrictions for production deployments
+  - Consider implementing rate limiting for the search API
+  - Monitor API usage in Google Cloud Console
 
 ## 🙏 Acknowledgments
 

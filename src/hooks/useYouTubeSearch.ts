@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
 
 import type { YouTubeSong } from '@/types';
-import type { YouTubeAPIResponse, YouTubeAPIItem, YouTubeVideosResponse } from '@/types/youtube';
-import { YOUTUBE_CONFIG } from '@/constants';
 import { createUserFriendlyError } from '@/utils/errorHandling';
 
 // Simple in-memory cache for search results
@@ -11,51 +9,36 @@ interface CacheEntry {
   timestamp: number;
 }
 
+interface YouTubeSearchResponse {
+  songs: YouTubeSong[];
+  total?: number;
+  error?: string;
+}
+
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const MAX_CACHE_SIZE = 50; // Limit cache to 50 entries to prevent memory leaks
+const MAX_CACHE_SIZE = 50;
 const searchCache = new Map<string, CacheEntry>();
 
-// Helper function to clean up old cache entries
+/**
+ * Clean up cache by removing expired entries first, then oldest entries if size exceeded
+ */
 const cleanupCache = () => {
-  if (searchCache.size <= MAX_CACHE_SIZE) return;
+  const now = Date.now();
 
-  // Remove oldest entries until we're under the limit
-  const entries = Array.from(searchCache.entries())
-    .sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-  const entriesToRemove = entries.slice(0, searchCache.size - MAX_CACHE_SIZE);
-  entriesToRemove.forEach(([key]) => searchCache.delete(key));
-};
-
-// Helper function to check if videos are embeddable
-const checkVideoEmbeddability = async (videoIds: string[]): Promise<Set<string>> => {
-  if (videoIds.length === 0) return new Set();
-
-  try {
-    const idsParam = videoIds.join(',');
-    const url = `${YOUTUBE_CONFIG.BASE_URL}/videos?part=status&id=${idsParam}&key=${YOUTUBE_CONFIG.API_KEY}`;
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn('Failed to check video embeddability, returning empty set');
-      return new Set(); // Return empty set on failure
+  // Remove expired entries
+  for (const [key, entry] of searchCache.entries()) {
+    if (now - entry.timestamp > CACHE_DURATION) {
+      searchCache.delete(key);
     }
+  }
 
-    const data: YouTubeVideosResponse = await response.json();
-    const embeddableIds = new Set<string>();
+  // If still over limit, remove oldest entries
+  if (searchCache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(searchCache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp);
 
-    if (data.items) {
-      data.items.forEach((item) => {
-        if (item.status.embeddable) {
-          embeddableIds.add(item.id);
-        }
-      });
-    }
-
-    return embeddableIds;
-  } catch (error) {
-    console.warn('Error checking video embeddability:', error);
-    return new Set(); // Return empty set on failure
+    const entriesToRemove = entries.slice(0, searchCache.size - MAX_CACHE_SIZE);
+    entriesToRemove.forEach(([key]) => searchCache.delete(key));
   }
 };
 
@@ -67,13 +50,12 @@ export const useYouTubeSearch = () => {
   const searchSongs = useCallback(async (query: string) => {
     if (!query) return;
 
-    const searchQuery = `${query} karaoke`;
-    const cacheKey = searchQuery.toLowerCase().trim();
-    
+    const cacheKey = query.toLowerCase().trim();
+
     // Check cache first
     const cachedEntry = searchCache.get(cacheKey);
     const now = Date.now();
-    
+
     if (cachedEntry && (now - cachedEntry.timestamp) < CACHE_DURATION) {
       setSongs(cachedEntry.songs);
       setError('');
@@ -84,56 +66,35 @@ export const useYouTubeSearch = () => {
     setError('');
 
     try {
-      const url = `${YOUTUBE_CONFIG.BASE_URL}/search?part=snippet&type=video&videoEmbeddable=true&q=${encodeURIComponent(
-        searchQuery,
-      )}&maxResults=${YOUTUBE_CONFIG.MAX_SEARCH_RESULTS}&key=${YOUTUBE_CONFIG.API_KEY}`;
-
+      // Call our server-side API instead of YouTube directly
+      const url = `/api/youtube/search?q=${encodeURIComponent(query)}`;
       const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: YouTubeAPIResponse = await response.json();
+      const data: YouTubeSearchResponse = await response.json();
 
-      if (data.error) {
-        throw new Error(data.error.message);
+      // Check for API errors
+      if (data.error && (!data.songs || data.songs.length === 0)) {
+        throw new Error(data.error);
       }
 
-      if (data.items && data.items.length > 0) {
-        // First, map all results
-        const allResults: YouTubeSong[] = data.items.map((item: YouTubeAPIItem) => ({
-          id: item.id.videoId,
-          title: item.snippet.title,
-          channelTitle: item.snippet.channelTitle,
-          thumbnail: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url || '',
-        }));
+      if (data.songs && data.songs.length > 0) {
+        setSongs(data.songs);
 
-        // Double-check embeddability using videos API
-        const videoIds = allResults.map((song) => song.id);
-        const embeddableIds = await checkVideoEmbeddability(videoIds);
+        // Cache the results
+        searchCache.set(cacheKey, {
+          songs: data.songs,
+          timestamp: now
+        });
 
-        // Filter to only embeddable videos and limit to display results
-        const embeddableResults = allResults
-          .filter((song) => embeddableIds.has(song.id))
-          .slice(0, YOUTUBE_CONFIG.MAX_DISPLAY_RESULTS);
-
-        if (embeddableResults.length > 0) {
-          setSongs(embeddableResults);
-          // Cache the results
-          searchCache.set(cacheKey, {
-            songs: embeddableResults,
-            timestamp: now
-          });
-          // Clean up old cache entries to prevent memory leaks
-          cleanupCache();
-        } else {
-          setSongs([]);
-          setError('No embeddable karaoke songs found. Try a different search term!');
-        }
+        // Clean up cache to prevent memory leaks
+        cleanupCache();
       } else {
         setSongs([]);
-        setError('No karaoke songs found. Try a different search term!');
+        setError(data.error || 'No karaoke songs found. Try a different search term!');
       }
     } catch (err) {
       console.error('Search error:', err);

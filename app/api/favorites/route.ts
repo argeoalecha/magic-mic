@@ -7,8 +7,22 @@ import { extractYouTubeVideoId } from '@/utils/favoritesParser';
 
 export async function GET() {
   try {
-    // Path to song_hits folder
-    const songHitsPath = path.join(process.cwd(), 'song_hits');
+    // Path to song_hits folder with security validation
+    const baseDir = process.cwd();
+    const songHitsPath = path.join(baseDir, 'song_hits');
+
+    // Security: Validate path to prevent traversal attacks
+    const normalizedPath = path.normalize(songHitsPath);
+    const relativePath = path.relative(baseDir, normalizedPath);
+
+    // Ensure the path doesn't escape the project directory
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      console.error('Path traversal attempt detected:', songHitsPath);
+      return NextResponse.json(
+        { error: 'Invalid path' },
+        { status: 400 }
+      );
+    }
 
     // Check if folder exists
     if (!fs.existsSync(songHitsPath)) {
@@ -29,7 +43,21 @@ export async function GET() {
 
     // Process each file
     for (const file of files) {
+      // Security: Validate filename doesn't contain path separators
+      if (file.includes('/') || file.includes('\\') || file.includes('..')) {
+        errors.push(`Skipped invalid filename: ${file}`);
+        continue;
+      }
+
       const filePath = path.join(songHitsPath, file);
+
+      // Security: Double-check the resolved path is still within song_hits
+      const resolvedPath = path.resolve(filePath);
+      const resolvedSongHits = path.resolve(songHitsPath);
+      if (!resolvedPath.startsWith(resolvedSongHits)) {
+        errors.push(`Skipped file outside song_hits directory: ${file}`);
+        continue;
+      }
 
       try {
         // Read the file

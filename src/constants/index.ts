@@ -1,8 +1,6 @@
 export const YOUTUBE_CONFIG = {
-  API_KEY: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || '',
-  BASE_URL: 'https://www.googleapis.com/youtube/v3',
-  MAX_SEARCH_RESULTS: 10, // Fetch more to account for filtering out non-embeddable videos
-  MAX_DISPLAY_RESULTS: 5, // Show maximum 5 results to avoid overwhelming viewport
+  // API_KEY removed - now handled server-side only for security
+  // Use /api/youtube/search endpoint instead of direct YouTube API calls
   EMBED_BASE_URL: 'https://www.youtube.com/embed',
   TRUSTED_ORIGINS: ['https://www.youtube.com', 'https://www.youtube-nocookie.com'] as const,
 } as const;
