@@ -191,7 +191,7 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({ onSearch, isLoading }) =
               🎤 Listening... {transcript && `"${transcript}"`}
             </p>
             <p className="text-xs text-red-500 mt-1">
-              Speak clearly and we'll search when you finish
+              Speak clearly and we&apos;ll search when you finish
             </p>
           </div>
         )}

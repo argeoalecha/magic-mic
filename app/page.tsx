@@ -5,20 +5,41 @@ import { SongResults } from '@/components/SongResults';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { QueueSidebar } from '@/components/QueueSidebar';
 import { CompactQueue } from '@/components/CompactQueue';
+import { FavoritesUploader } from '@/components/FavoritesUploader';
+import { FavoritesGroupSelector } from '@/components/FavoritesGroupSelector';
 import { useYouTubeSearch } from '@/hooks/useYouTubeSearch';
 import { useQueue } from '@/hooks/useQueue';
-import type { YouTubeSong } from '@/types';
+import { useFavorites } from '@/hooks/useFavorites';
+import type { YouTubeSong, FavoriteSong } from '@/types';
 import React, { useCallback, useRef, useEffect } from 'react';
 
 export default function Home() {
   const { songs, isLoading: isSearching, error, searchSongs } = useYouTubeSearch();
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [favoriteResults, setFavoriteResults] = React.useState<FavoriteSong[]>([]);
 
-  // Memoize searchSongs to prevent SearchBar re-renders
+  // Initialize favorites hook
+  const {
+    favorites,
+    uploadState,
+    reloadFavorites,
+    searchFavorites,
+    getFavoriteGroups,
+    getSongsByGroup,
+    clearFavorites,
+  } = useFavorites();
+
+  // Memoize searchSongs to prevent SearchBar re-renders and search favorites first
   const memoizedSearchSongs = useCallback((query: string) => {
     setSearchQuery(query);
+
+    // Search favorites first (instant)
+    const favoriteMatches = searchFavorites(query);
+    setFavoriteResults(favoriteMatches);
+
+    // Then search YouTube
     searchSongs(query);
-  }, [searchSongs]);
+  }, [searchSongs, searchFavorites]);
 
   const {
     queue,
@@ -34,13 +55,56 @@ export default function Home() {
     clearQueue,
   } = useQueue();
 
-  const handleSongSelect = (song: YouTubeSong) => {
+  const handleSongSelect = async (song: YouTubeSong) => {
+    // Add song to queue
     addToQueue(song);
+
+    // Check if song is NOT a favorite (i.e., from YouTube search)
+    const isFavorite = 'isFavorite' in song && (song as FavoriteSong).isFavorite === true;
+
+    if (!isFavorite) {
+      // Auto-save to new_songs.xlsx
+      try {
+        const response = await fetch('/api/favorites/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: song.title,
+            artist: song.channelTitle,
+            youtubeUrl: `https://www.youtube.com/watch?v=${song.id}`,
+            videoId: song.id,
+          }),
+        });
+
+        const data = await response.json();
+
+        // Silently log success, don't show notification to user
+        if (response.ok && !data.skipped) {
+          console.log('✅ Song auto-saved to my_favorites.xlsx:', song.title);
+        } else if (data.skipped) {
+          console.log('ℹ️ Song already in favorites, skipped:', song.title);
+        }
+      } catch (error) {
+        // Silently fail - don't interrupt user experience
+        console.error('Failed to auto-save song:', error);
+      }
+    }
   };
 
   const handleClearSearchResults = () => {
     setSearchQuery('');
+    setFavoriteResults([]);
   };
+
+  // Add entire favorite group to queue
+  const handleAddGroupToQueue = useCallback((groupName: string) => {
+    const groupSongs = getSongsByGroup(groupName);
+    groupSongs.forEach(song => {
+      addToQueue(song);
+    });
+  }, [getSongsByGroup, addToQueue]);
 
   // Store playNext in a ref to avoid unnecessary effect re-runs
   const playNextRef = useRef(playNext);
@@ -91,8 +155,24 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Search Results & Queue */}
           <div className="lg:col-span-4 space-y-6">
+            {/* Favorites Uploader */}
+            <FavoritesUploader
+              onReload={reloadFavorites}
+              uploadState={uploadState}
+              onClear={clearFavorites}
+            />
+
             {/* Search Bar - moved to left column */}
             <SearchBar onSearch={memoizedSearchSongs} isLoading={isSearching} />
+
+            {/* Favorites Group Selector - show when favorites exist and no queue */}
+            {favorites.length > 0 && queue.length === 0 && (
+              <FavoritesGroupSelector
+                groups={getFavoriteGroups()}
+                onAddGroupToQueue={handleAddGroupToQueue}
+                isVisible={true}
+              />
+            )}
 
             {queue.length > 0 && (
               <div className="text-center">
@@ -103,9 +183,10 @@ export default function Home() {
             )}
 
             {/* Search Results - only show when there's an active search */}
-            {searchQuery && (songs.length > 0 || isSearching || error) && (
+            {searchQuery && (songs.length > 0 || favoriteResults.length > 0 || isSearching || error) && (
               <SongResults
-                songs={songs.slice(0, 3)}
+                favoriteSongs={favoriteResults}
+                youtubeSongs={songs.slice(0, 3)}
                 onSongSelect={handleSongSelect}
                 isLoading={isSearching}
                 error={error}

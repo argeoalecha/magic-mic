@@ -23,3 +23,31 @@ export interface PlayerState {
   isReady: boolean;
   error: string | null;
 }
+
+// Favorites types
+export interface FavoriteSong extends YouTubeSong {
+  artist: string;
+  group: string;
+  sourceUrl: string;
+  isFavorite: true;
+}
+
+export interface FavoriteFileRow {
+  title: string;
+  artist: string;
+  url: string;
+  group: string;
+}
+
+export interface FavoritesUploadState {
+  isUploading: boolean;
+  error: string;
+  fileName: string;
+  totalSongs: number;
+}
+
+export interface FavoriteGroup {
+  name: string;
+  songs: FavoriteSong[];
+  count: number;
+}
